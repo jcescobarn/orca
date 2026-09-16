@@ -51,6 +51,9 @@ export type RuntimeManagedWorktreeCreateArgs = {
   startupAgent?: TuiAgent
   startupLaunchPreferences?: AgentLaunchPreferences
   startupPrompt?: string
+  /** Pins one managed Claude account to this worktree's first launch. Ignored when
+   *  `startupAgent` is not `'claude'`. */
+  claudeAccountId?: string
   pendingFirstAgentMessageRename?: boolean
   automationProvenance?: AutomationWorkspaceProvenance
   cliProvenance?: CliWorkspaceProvenance

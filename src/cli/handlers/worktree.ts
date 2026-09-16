@@ -194,6 +194,10 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
     const explicitParentWorktree = explicitParent.parentWorktree
     const explicitParentWorkspace = explicitParent.parentWorkspace
     const startupAgent = getOptionalStartupAgent(flags)
+    const claudeAccountId = getPresentStringFlag(flags, 'claude-account')
+    if (claudeAccountId !== undefined && startupAgent !== 'claude') {
+      throw new RuntimeClientError('invalid_argument', '--claude-account requires --agent claude')
+    }
     const setupDecision = getOptionalSetupDecision(flags)
     const noParent = flags.get('no-parent') === true
     const envParentWorkspace =
@@ -245,7 +249,8 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
       ...(startupAgent
         ? {
             startupAgent,
-            startupPrompt: getPresentStringFlag(flags, 'prompt', { allowEmpty: true }) ?? ''
+            startupPrompt: getPresentStringFlag(flags, 'prompt', { allowEmpty: true }) ?? '',
+            ...(claudeAccountId ? { claudeAccountId } : {})
           }
         : {})
     })

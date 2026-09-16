@@ -12,6 +12,8 @@ import {
 } from '../../shared/tui-agent-launch-defaults'
 import { buildAgentDraftLaunchPlan, buildAgentStartupPlan } from '../../shared/tui-agent-startup'
 import { resolveLocalWindowsAgentStartupShell } from '../../shared/windows-terminal-shell'
+import { applyClaudeEnvPatch } from '../claude-accounts/environment'
+import { resolveClaudeAccountPinEnvPatch } from '../claude-accounts/claude-account-worktree-pin'
 import {
   markCodexProjectTrusted,
   markCopilotFolderTrusted,
@@ -130,6 +132,9 @@ export function buildWorktreeStartupForAgent(
     agent: TuiAgent
     prompt?: string
     launchPreferences?: AgentLaunchPreferences
+    /** Pins one managed Claude account to this launch only; leaves the globally active
+     *  account and every other worktree untouched. Ignored for non-Claude agents. */
+    claudeAccountId?: string
     toSessionOptions: (
       preferences?: AgentLaunchPreferences
     ) => Parameters<typeof buildAgentStartupPlan>[0]['sessionOptions'] | undefined
@@ -142,12 +147,20 @@ export function buildWorktreeStartupForAgent(
   const platform = environment.getLaunchPlatform()
   const isRemote = repoIsRemote(repo)
   const sessionOptions = environment.toSessionOptions(environment.launchPreferences)
+  const agentEnv = resolveTuiAgentLaunchEnv(agent, settings.agentDefaultEnv)
+  if (agent === 'claude' && environment.claudeAccountId) {
+    applyClaudeEnvPatch(
+      agentEnv,
+      resolveClaudeAccountPinEnvPatch(environment.claudeAccountId, settings.claudeManagedAccounts ?? []),
+      { stripAuthEnv: true, platform }
+    )
+  }
   const startupPlan = buildAgentStartupPlan({
     agent,
     prompt: environment.prompt ?? '',
     cmdOverrides: settings.agentCmdOverrides ?? {},
     agentArgs: resolveTuiAgentLaunchArgs(agent, settings.agentDefaultArgs),
-    agentEnv: resolveTuiAgentLaunchEnv(agent, settings.agentDefaultEnv),
+    agentEnv,
     sessionOptions,
     sessionOptionsOverrideAgentArgs: Boolean(sessionOptions),
     platform,

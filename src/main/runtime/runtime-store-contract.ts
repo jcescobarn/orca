@@ -120,6 +120,9 @@ export type RuntimeStore = {
     hostSettingOverrides?: GlobalSettings['hostSettingOverrides']
     agentSkillSharingEnabled?: GlobalSettings['agentSkillSharingEnabled']
     nativeChatSessionOptions?: GlobalSettings['nativeChatSessionOptions']
+    // Why: buildWorktreeStartupForAgent resolves a per-launch Claude account pin
+    // (claudeAccountId) against this list instead of the globally active account.
+    claudeManagedAccounts?: GlobalSettings['claudeManagedAccounts']
   }
   // Why: narrow to `unknown` return so test mocks can return void without
   // a cast. The runtime never reads the return value — the persisted value

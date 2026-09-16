@@ -110,6 +110,9 @@ export const WorktreeCreate = z
     // workspaces execute in a different shell than the client process.
     startupAgent: OptionalTuiAgent,
     startupPrompt: OptionalString,
+    // Why: pins one managed Claude account to just this launch (see #9496 / #6963) instead
+    // of the host-wide active-account swap `ClaudeAccountSelection` otherwise applies.
+    claudeAccountId: OptionalString,
     // Why: task-driven mobile creates need desktop parity: the host chooses
     // the same default/detected agent and drafts the linked issue/PR URL into it.
     startupDraft: OptionalString,
@@ -141,6 +144,12 @@ export const WorktreeCreate = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'startupPrompt requires startupAgent'
+      })
+    }
+    if (params.claudeAccountId !== undefined && params.startupAgent !== 'claude') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'claudeAccountId requires startupAgent claude'
       })
     }
   })
