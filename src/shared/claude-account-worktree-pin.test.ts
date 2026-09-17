@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { ClaudeManagedAccount } from '../../shared/managed-account-types'
-import { ClaudeAccountPinError, resolveClaudeAccountPinEnvPatch } from './claude-account-worktree-pin'
+import type { ClaudeManagedAccount } from './managed-account-types'
+import {
+  ClaudeAccountPinError,
+  resolveClaudeAccountPinEnvPatch
+} from './claude-account-worktree-pin'
 
 function account(overrides: Partial<ClaudeManagedAccount> = {}): ClaudeManagedAccount {
   return {
@@ -31,8 +34,6 @@ describe('resolveClaudeAccountPinEnvPatch', () => {
 
   it('throws for a WSL-managed account', () => {
     const accounts = [account({ managedAuthRuntime: 'wsl' })]
-    expect(() => resolveClaudeAccountPinEnvPatch('acct-1', accounts)).toThrow(
-      /WSL-managed/
-    )
+    expect(() => resolveClaudeAccountPinEnvPatch('acct-1', accounts)).toThrow(/WSL-managed/)
   })
 })

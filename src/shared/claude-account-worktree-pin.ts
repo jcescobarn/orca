@@ -1,4 +1,4 @@
-import type { ClaudeManagedAccount } from '../../shared/managed-account-types'
+import type { ClaudeManagedAccount } from './managed-account-types'
 
 /** Thrown when a worktree launch names a Claude account pin that cannot be honored. */
 export class ClaudeAccountPinError extends Error {}
@@ -25,4 +25,13 @@ export function resolveClaudeAccountPinEnvPatch(
     )
   }
   return { CLAUDE_CONFIG_DIR: account.managedAuthPath }
+}
+
+/** Merges the pin patch into `env` in place, for callers that only need the mutation. */
+export function applyClaudeAccountPinEnvPatch(
+  env: Record<string, string>,
+  accountId: string,
+  accounts: readonly ClaudeManagedAccount[]
+): void {
+  Object.assign(env, resolveClaudeAccountPinEnvPatch(accountId, accounts))
 }

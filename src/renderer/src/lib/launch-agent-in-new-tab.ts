@@ -35,6 +35,7 @@ import {
   planAgentSessionLaunch,
   type AgentSessionLaunchPlan
 } from '@/lib/agent-session-launch-plan'
+import { pinClaudeAccountEnv } from '@/lib/launch-agent-claude-account-pin'
 
 export type LaunchAgentInNewTabArgs = {
   agent: TuiAgent
@@ -46,6 +47,8 @@ export type LaunchAgentInNewTabArgs = {
   /** Optional CLI arguments appended to the selected agent command. */
   agentArgs?: string | null
   initialCwd?: string | null
+  /** Pins one managed Claude account to just this launch. `agent === 'claude'` only; throws `ClaudeAccountPinError` if unknown/WSL-managed. */
+  claudeAccountId?: string
   /** How to deliver the prompt: `draft` leaves it editable, `submit-after-ready` sends it once the TUI is ready. */
   promptDelivery?: 'auto-submit' | 'draft' | 'submit-after-ready'
   /** Telemetry surface that initiated this launch. Defaults to the tab-bar quick-launch entry point. */
@@ -105,6 +108,7 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     prompt,
     agentArgs,
     initialCwd,
+    claudeAccountId,
     promptDelivery = 'auto-submit',
     launchSource,
     quickCommandLabel,
@@ -144,6 +148,7 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
       ? agentArgs
       : resolveTuiAgentLaunchArgs(agent, store.settings?.agentDefaultArgs)
   const agentEnv = resolveTuiAgentLaunchEnv(agent, store.settings?.agentDefaultEnv)
+  pinClaudeAccountEnv(agent, agentEnv, claudeAccountId, store.settings?.claudeManagedAccounts)
   const trimmedPrompt = prompt?.trim() ?? ''
   const hasPrompt = trimmedPrompt.length > 0
   const isFollowupPath = TUI_AGENT_CONFIG[agent].promptInjectionMode === 'stdin-after-start'

@@ -13,7 +13,7 @@ import {
 import { buildAgentDraftLaunchPlan, buildAgentStartupPlan } from '../../shared/tui-agent-startup'
 import { resolveLocalWindowsAgentStartupShell } from '../../shared/windows-terminal-shell'
 import { applyClaudeEnvPatch } from '../claude-accounts/environment'
-import { resolveClaudeAccountPinEnvPatch } from '../claude-accounts/claude-account-worktree-pin'
+import { resolveClaudeAccountPinEnvPatch } from '../../shared/claude-account-worktree-pin'
 import {
   markCodexProjectTrusted,
   markCopilotFolderTrusted,
@@ -151,7 +151,10 @@ export function buildWorktreeStartupForAgent(
   if (agent === 'claude' && environment.claudeAccountId) {
     applyClaudeEnvPatch(
       agentEnv,
-      resolveClaudeAccountPinEnvPatch(environment.claudeAccountId, settings.claudeManagedAccounts ?? []),
+      resolveClaudeAccountPinEnvPatch(
+        environment.claudeAccountId,
+        settings.claudeManagedAccounts ?? []
+      ),
       { stripAuthEnv: true, platform }
     )
   }

@@ -1,8 +1,16 @@
 import React, { useCallback } from 'react'
 import { Loader2, Settings as SettingsIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { DropdownMenuItem, DropdownMenuShortcut } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger
+} from '@/components/ui/dropdown-menu'
 import { getAgentCatalog, AgentIcon } from '@/lib/agent-catalog'
+import { ClaudeAccountPinError } from '../../../../shared/claude-account-worktree-pin'
+import type { ClaudeManagedAccount } from '../../../../shared/managed-account-types'
 import { useAppStore } from '@/store'
 import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTarget'
 import { useDetectedAgents } from '@/hooks/useDetectedAgents'
@@ -38,6 +46,8 @@ export type QuickLaunchAgentMenuItemsProps = {
   /** Called after a prompt is queued into the agent, or immediately for argv prompt launches. */
   onPromptDelivered?: () => void
 }
+
+const EMPTY_ACCOUNTS: readonly ClaudeManagedAccount[] = []
 
 function getCatalogEntry(agent: TuiAgent): { id: TuiAgent; label: string } | null {
   return getAgentCatalog().find((a) => a.id === agent) ?? null
@@ -130,19 +140,32 @@ function QuickLaunchAgentMenuItemsInner({
     openSettingsPage()
   }, [openSettingsPage, openSettingsTarget])
 
+  const claudeManagedAccounts =
+    useAppStore((s) => s.settings?.claudeManagedAccounts) ?? EMPTY_ACCOUNTS
+
   const runLaunch = useCallback(
-    (agent: TuiAgent) => {
+    (agent: TuiAgent, claudeAccountId?: string) => {
       const entry = getCatalogEntry(agent)
       const label = entry?.label ?? agent
-      const result = launchAgentInNewTab({
-        agent,
-        worktreeId,
-        groupId,
-        ...(prompt !== undefined ? { prompt } : {}),
-        ...(promptDelivery !== undefined ? { promptDelivery } : {}),
-        ...(launchSource !== undefined ? { launchSource } : {}),
-        ...(onPromptDelivered !== undefined ? { onPromptDelivered } : {})
-      })
+      let result: ReturnType<typeof launchAgentInNewTab>
+      try {
+        result = launchAgentInNewTab({
+          agent,
+          worktreeId,
+          groupId,
+          ...(prompt !== undefined ? { prompt } : {}),
+          ...(promptDelivery !== undefined ? { promptDelivery } : {}),
+          ...(launchSource !== undefined ? { launchSource } : {}),
+          ...(onPromptDelivered !== undefined ? { onPromptDelivered } : {}),
+          ...(claudeAccountId !== undefined ? { claudeAccountId } : {})
+        })
+      } catch (error) {
+        if (error instanceof ClaudeAccountPinError) {
+          toast.error(error.message)
+          return
+        }
+        throw error
+      }
       if (!result) {
         toast.error(
           translate(
@@ -207,6 +230,40 @@ function QuickLaunchAgentMenuItemsInner({
           isAgentSessionHandleProvider(agent) && structuredLaunchStatusByAgent[agent] === 'pending'
         const showsDefaultAgentShortcut =
           newAgentShortcut !== null && defaultAgent !== 'blank' && agent === defaultAgent
+        const icon = isStructuredLaunchPending ? (
+          <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
+        ) : (
+          <AgentIcon agent={agent} size={14} />
+        )
+        if (agent === 'claude' && claudeManagedAccounts.length > 0) {
+          return (
+            <DropdownMenuSub key={agent}>
+              <DropdownMenuSubTrigger
+                disabled={isStructuredLaunchPending}
+                className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
+              >
+                {icon}
+                <span className="flex-1">{label}</span>
+                {showsDefaultAgentShortcut ? (
+                  <DropdownMenuShortcut>{newAgentShortcut}</DropdownMenuShortcut>
+                ) : null}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => runLaunch(agent)}>
+                  {translate(
+                    'auto.components.tab.bar.QuickLaunchButton.local.account',
+                    'This machine (local)'
+                  )}
+                </DropdownMenuItem>
+                {claudeManagedAccounts.map((account) => (
+                  <DropdownMenuItem key={account.id} onSelect={() => runLaunch(agent, account.id)}>
+                    {account.email}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )
+        }
         return (
           <DropdownMenuItem
             key={agent}
@@ -219,11 +276,7 @@ function QuickLaunchAgentMenuItemsInner({
               { value0: label }
             )}
           >
-            {isStructuredLaunchPending ? (
-              <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
-            ) : (
-              <AgentIcon agent={agent} size={14} />
-            )}
+            {icon}
             <span className="flex-1">{label}</span>
             {showsDefaultAgentShortcut ? (
               <DropdownMenuShortcut>{newAgentShortcut}</DropdownMenuShortcut>
